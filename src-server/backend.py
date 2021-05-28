@@ -1,7 +1,5 @@
 # Python 3 server example
 from http.server import BaseHTTPRequestHandler, HTTPServer
-import time
-import logging
 import requests
 import base64
 import re
@@ -22,20 +20,22 @@ def add_css(html,url):
     del parsedurl[1:3]
     for i in matches:
         if i[0] == "s":
-            print("s")
-            print(i)
             newmatches.append(i[:5]+combine_path(parsedurl,i[5:]))
         elif i[0] == "h":
-            print("h")
             newmatches.append(i[:6]+combine_path(parsedurl,i[6:]))
         else:
             print(i[0]+" Present at the front of string")
-            raise
+            raises
     if len(newmatches) != len(matches):
         print("Match incorrect")
         raise
     for i in range(len(matches)):
         html = html.replace(matches[i],newmatches[i])
+    matches = re.findall('<a.*?href=["\'].*?["\']',html)
+    print(matches)
+    for i in matches:
+        j = i.replace("https://","http://localhost:8080/https://")
+        html = html.replace(i,j)
     return html
 
 def combine_path(abpath,relpath):
