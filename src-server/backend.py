@@ -1,8 +1,8 @@
 # Python 3 server example
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import requests
-import base64
 import re
+import logging
 
 hostName = "localhost"
 serverPort = 8080
