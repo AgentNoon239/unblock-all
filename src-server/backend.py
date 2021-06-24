@@ -67,6 +67,7 @@ class MyServer(BaseHTTPRequestHandler):
 
 def format_site(url):
     html = requests.get(url).text
+    html = re.replace('<title>.*?</title>',<title>index.html</title>)
     matches = re.findall('src=["\'][^http].*?["\']|href=["\'][^http].*?["\']',html) #Don't diss the regex. It's beautiful
     newmatches = []
     parsedurl = url.replace("/","/,").split(",") #Parseurl
