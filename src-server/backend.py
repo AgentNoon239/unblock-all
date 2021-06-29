@@ -4,14 +4,14 @@ import requests
 import re
 
 #Configuring globals
-hostName = "localhost"
+hostName = "0.0.0.0"
 serverPort = 8080
 url = None
 
 #Configuring logging setup
 import logging
 import traceback
-handler = logging.FileHandler(r"C:/Users/abc/Desktop/Tools/Python/unblock-all/src-server/main.log","w")
+handler = logging.FileHandler(r"main.log","w")
 formatter = logging.Formatter("%(asctime)-15s : %(name)s : %(levelname)-8s :: %(url)s : %(trace)s : %(message)s")
 handler.setFormatter(formatter)
 logger = logging.getLogger("Core")
@@ -34,7 +34,7 @@ class MyServer(BaseHTTPRequestHandler):
             #Command for logs access
             if str(url) == "$%3Elog": #Escape string for $>log
                 self._headers()
-                f = open("C:/Users/abc/Desktop/Tools/Python/unblock-all/src-server/main.log","r")
+                f = open("main.log","r")
                 logs = f.read().replace("\n","<br>") #Converting to HTML for rendering
                 self.wfile.write(bytes("<p>"+logs+"</p>","utf-8"))
                 f.close()
@@ -45,6 +45,7 @@ class MyServer(BaseHTTPRequestHandler):
                 self._headers()
             #Default functionality
             else:
+                url = "https://"+url
                 self._headers()
                 self.wfile.write(bytes(format_site(url),"utf-8"))
             #Handling and recording of exceptions
@@ -88,7 +89,7 @@ def format_site(url):
         html = html.replace(matches[i],newmatches[i])
     matches = re.findall('<a.*?href=["\'].*?["\']',html)
     for i in matches:
-        j = i.replace("https://","http://localhost:8080/https://")
+        j = i.replace("https://","https://unblock-all.tomgriffiths2.repl.co/")
         html = html.replace(i,j)
     return html
 
