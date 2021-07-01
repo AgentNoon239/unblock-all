@@ -17,7 +17,7 @@ waiting = False
 #Configuring logging setup
 import logging
 import traceback
-handler = logging.FileHandler(r"main.log","w")
+handler = logging.FileHandler(r"src/main.log","w")
 formatter = logging.Formatter("%(asctime)-15s : %(name)s : %(levelname)-8s :: %(url)s : %(trace)s : %(message)s")
 handler.setFormatter(formatter)
 logger = logging.getLogger("Core")
@@ -27,7 +27,7 @@ logger.addHandler(handler)
 #Logging helper function
 def catch(type,e):
     if type == "error" or type == "critical":
-        getattr(logger,type)(str(e),extra={"url":url,"trace":traceback.format_tb(e.__traceback__)})
+        getattr(logger,type)(str(e),extra={"url":url,"trace":traceback.format_tb(e.__traceback__,limit=1)})
     else:
         getattr(logger,type)(str(e),extra={"url":url,"trace":None})
 
@@ -66,6 +66,7 @@ class MyServer(BaseHTTPRequestHandler):
                         c.add(url,file)
                 waiting = False
                 self.wfile.write(bytes(file,"utf-8"))
+                catch("info","Serviced request for "+url)
             #Handling and recording of exceptions
         except Exception as e:
             print(type(e))
