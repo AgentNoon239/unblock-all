@@ -2,11 +2,17 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import requests
 import re
+import threading
+import collections
+import sys
+from time import sleep
+from json import load
 
 #Configuring globals
-hostName = "0.0.0.0"
-serverPort = 8080
+config = load(open(r"src\config.json"))
 url = None
+lock = threading.Lock()
+waiting = False
 
 #Configuring logging setup
 import logging
@@ -17,6 +23,7 @@ handler.setFormatter(formatter)
 logger = logging.getLogger("Core")
 logger.setLevel("DEBUG")
 logger.addHandler(handler)
+
 #Logging helper function
 def catch(type,e):
     if type == "error" or type == "critical":
@@ -38,6 +45,10 @@ class MyServer(BaseHTTPRequestHandler):
                 logs = f.read().replace("\n","<br>") #Converting to HTML for rendering
                 self.wfile.write(bytes("<p>"+logs+"</p>","utf-8"))
                 f.close()
+            elif str(url) == "$%3Ecache":
+                self._headers()
+                with lock:
+                    self.wfile.write(bytes("<p>"+str(c.memory.keys())+"</p>","utf-8"))
             #Internal command for bug reporting
             elif url[0:10] == "$%3Ereport": #Escape string for $>report
                 raise Exception("User reported error")
@@ -47,7 +58,14 @@ class MyServer(BaseHTTPRequestHandler):
             else:
                 url = "https://"+url
                 self._headers()
-                self.wfile.write(bytes(format_site(url),"utf-8"))
+                waiting = True
+                with lock:
+                    file = c.get(url)
+                    if file == None:
+                        file = format_site(url)
+                        c.add(url,file)
+                waiting = False
+                self.wfile.write(bytes(file,"utf-8"))
             #Handling and recording of exceptions
         except Exception as e:
             print(type(e))
@@ -68,7 +86,7 @@ class MyServer(BaseHTTPRequestHandler):
 
 def format_site(url):
     html = requests.get(url).text
-    html = re.replace('<title>.*?</title>',<title>index.html</title>)
+    html = re.sub('<title>.*?</title>','<title>index.html</title>',html)
     matches = re.findall('src=["\'][^http].*?["\']|href=["\'][^http].*?["\']',html) #Don't diss the regex. It's beautiful
     newmatches = []
     parsedurl = url.replace("/","/,").split(",") #Parseurl
@@ -89,7 +107,7 @@ def format_site(url):
         html = html.replace(matches[i],newmatches[i])
     matches = re.findall('<a.*?href=["\'].*?["\']',html)
     for i in matches:
-        j = i.replace("https://","https://unblock-all.tomgriffiths2.repl.co/")
+        j = i.replace("https://",config["domain"])
         html = html.replace(i,j)
     return html
 
@@ -111,13 +129,35 @@ def concat_list(lst):
         concatlst += l
     return concatlst
 
+class cache():
+    def __init__(self):
+        self.memory = collections.OrderedDict()
+        self.size = 0
+    def add(self,url,file):
+        self.memory[url] = file #Inserts at the end of the cache so will be last removed
+        self.size += sys.getsizeof(file) #Adds size to size total
+    def get(self,url):
+        if url in self.memory:
+            self.memory.move_to_end(url,True)
+            return self.memory[url]
+    def maintain(self):
+        while True: #Daemon thread so loops forever until exit
+            with lock:
+                while not waiting and self.size > config["cacheSize"]*1000000:
+                    self.size -= sys.getsizeof(self.memory.popitem(False)[1]) #Removes the last item and subtracts its size
+            sleep(10)
+
 if __name__ == "__main__":
-    webServer = HTTPServer((hostName, serverPort), MyServer)
+    print(config)
+    webServer = HTTPServer((config["hostName"], config["serverPort"]), MyServer)
+    c = cache()
     catch("info","Server online")
-    print("Server started http://%s:%s" % (hostName, serverPort))
+    print("Server started http://%s:%s" % (config["hostName"], config["serverPort"]))
+    #Configuring the threading setup
     try:
-        webServer.serve_forever()
+        mthread = threading.Thread(target=webServer.serve_forever)
+        cthread = threading.Thread(target=c.maintain,daemon=True)
+        mthread.start()
+        cthread.start()
     except Exception as e:
         catch("critical",e)
-    webServer.server_close()
-    print("Server stopped.")

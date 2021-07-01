@@ -1,0 +1,6 @@
+{
+"hostName":"localhost",
+"serverPort":8080,
+"domain":"https://localhost:8080/",
+"cacheSize":1024
+}
