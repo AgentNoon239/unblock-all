@@ -9,7 +9,7 @@ from time import sleep
 from json import load
 
 #Configuring globals
-config = load(open(r"src\config.json"))
+config = load(open(r"src/config.json"))
 url = None
 lock = threading.Lock()
 waiting = False
